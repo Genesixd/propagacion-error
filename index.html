@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Propagación del error – Carbono‑14 & Ley de Enfriamiento</title>
+  <style>
+    :root{
+      --bg:#0b0c10; --card:#121319; --muted:#9aa3b2; --text:#e6ebf5; --brand:#7c5cff; --ok:#2dd4bf; --warn:#f59e0b; --err:#ef4444;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";}
+    a{color:var(--ok)}
+    .wrap{max-width:1100px;margin:32px auto;padding:0 16px}
+    .title{font-weight:800;letter-spacing:.2px;font-size:28px;display:flex;gap:10px;align-items:center}
+    .title small{font-weight:600;color:var(--muted)}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:18px;margin-top:18px}
+    .card{background:var(--card);border:1px solid rgba(255,255,255,.06);border-radius:18px;padding:18px;box-shadow:0 4px 30px rgba(0,0,0,.25)}
+    .card h2{font-size:18px;margin:.2rem 0 1rem 0}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:.4rem 0}
+    label{font-size:12px;color:var(--muted)}
+    input,button,select{width:100%;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:#0f1118;color:var(--text);font-size:14px}
+    input:focus,button:focus{outline:2px solid var(--brand);outline-offset:2px}
+    .btn{display:inline-flex;gap:8px;align-items:center;justify-content:center;border:none;background:linear-gradient(135deg,var(--brand),#00d4ff);cursor:pointer;font-weight:700}
+    .btn.secondary{background:#0f1118}
+    .btnbar{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap}
+    .muted{color:var(--muted)}
+    .result{margin-top:10px;padding:12px;border-radius:12px;background:#0e1220;border:1px dashed rgba(255,255,255,.09)}
+    .result .kpi{display:flex;gap:10px;flex-wrap:wrap}
+    .pill{background:#0b1020;border:1px solid rgba(255,255,255,.07);padding:8px 10px;border-radius:999px;font-size:13px}
+    .warn{color:var(--warn)}
+    .err{color:var(--err)}
+    details{margin-top:8px}
+    code{background:#0b1020;border:1px solid rgba(255,255,255,.08);padding:1px 6px;border-radius:8px}
+    footer{margin:24px 0 40px;color:var(--muted);font-size:13px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="title">Propagación del error <small>Calculadoras interactivas – Ingeniería de Software / Métodos Numéricos</small></div>
+    <p class="muted">Dos problemas clásicos (decaimiento radiactivo del <em>Carbono‑14</em> y la <em>Ley de Enfriamiento de Newton</em>) con estimación de incertidumbre por propagación de errores usando derivadas parciales. Todo en una sola página, 100% local (funciona en GitHub Pages).</p>
+
+    <div class="grid">
+      <!-- PROBLEMA 32: Carbono 14 -->
+      <section class="card" id="c14card">
+        <h2>Problema A · Datación por Carbono‑14 (con error)</h2>
+        <p class="muted">Modelo: <code>N(t)=N₀·e^{kt}</code> con <code>k=\ln(0.5)/T_{1/2}</code>. Si la muestra conserva una fracción <code>r=N(t)/N₀</code>, entonces <code>t = T_{1/2}\,\frac{\ln r}{\ln 0.5}</code>.</p>
+        <div class="row">
+          <div>
+            <label>Fracción medida r = N/N₀ (en %)</label>
+            <input id="c14_r" type="number" step="0.0001" value="77.45" />
+          </div>
+          <div>
+            <label>Incertidumbre de r (± puntos %)</label>
+            <input id="c14_sr" type="number" step="0.001" value="0.50" />
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Semivida T₁/₂ (años)</label>
+            <input id="c14_T" type="number" step="1" value="5730" />
+          </div>
+          <div>
+            <label>Incertidumbre de T₁/₂ (± años)</label>
+            <input id="c14_sT" type="number" step="1" value="40" />
+          </div>
+        </div>
+        <div class="btnbar">
+          <button class="btn" onclick="computeC14()">Calcular edad</button>
+          <button class="btn secondary" onclick="resetC14()">Reset</button>
+        </div>
+        <div class="result" id="c14_out"></div>
+        <details>
+          <summary>Ver fórmulas de propagación</summary>
+          <p class="muted">Con <code>t(T,r)=T·\dfrac{\ln r}{\ln 0.5}</code>, el error estándar <code>σ_t</code> se aproxima como
+          <code>σ_t = \sqrt{\left(\frac{∂t}{∂r}σ_r\right)^2 + \left(\frac{∂t}{∂T}σ_T\right)^2}</code>,
+          donde <code>∂t/∂r = \dfrac{T}{\ln 0.5}·\dfrac{1}{r}</code> y <code>∂t/∂T = \dfrac{\ln r}{\ln 0.5}</code>.</p>
+        </details>
+      </section>
+
+      <!-- PROBLEMA 36: Ley de Enfriamiento -->
+      <section class="card" id="coolcard">
+        <h2>Problema B · Ley de Enfriamiento (con error)</h2>
+        <p class="muted">Modelo: <code>T(t)=T_s+(T_0-T_s)·e^{-kt}</code>. Dos mediciones separadas por <code>Δ</code> horas → <code>k=-(1/Δ)\ln\dfrac{T_2-T_s}{T_1-T_s}</code>. Tiempo desde la muerte hasta la 1ª medición: <code>τ=\dfrac{1}{k}\ln\dfrac{T_n-T_s}{T_1-T_s}</code>.</p>
+        <div class="row">
+          <div>
+            <label>Temp. ambiente T_s (°F)</label>
+            <input id="co_Ts" type="number" step="0.1" value="69" />
+          </div>
+          <div>
+            <label>±σ(T_s) (°F)</label>
+            <input id="co_sTs" type="number" step="0.1" value="1.0" />
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>1ª medición T₁ (°F)</label>
+            <input id="co_T1" type="number" step="0.1" value="79.5" />
+          </div>
+          <div>
+            <label>±σ(T₁) (°F)</label>
+            <input id="co_sT1" type="number" step="0.1" value="0.5" />
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>2ª medición T₂ (°F)</label>
+            <input id="co_T2" type="number" step="0.1" value="78.0" />
+          </div>
+          <div>
+            <label>±σ(T₂) (°F)</label>
+            <input id="co_sT2" type="number" step="0.1" value="0.5" />
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Normal corporal T_n (°F)</label>
+            <input id="co_Tn" type="number" step="0.1" value="98.6" />
+          </div>
+          <div>
+            <label>±σ(T_n) (°F)</label>
+            <input id="co_sTn" type="number" step="0.1" value="0.5" />
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Intervalo Δ entre mediciones (h)</label>
+            <input id="co_D" type="number" step="0.01" value="1.0" />
+          </div>
+          <div>
+            <label>±σ(Δ) (h)</label>
+            <input id="co_sD" type="number" step="0.01" value="0.0" />
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Hora de 1ª medición (24h, HH:MM)</label>
+            <input id="co_hhmm" type="time" value="21:18" />
+          </div>
+          <div>
+            <label>Formato de salida</label>
+            <select id="co_fmt">
+              <option value="hm">hh:mm</option>
+              <option value="h">horas decimales</option>
+            </select>
+          </div>
+        </div>
+        <div class="btnbar">
+          <button class="btn" onclick="computeCool()">Calcular hora de muerte</button>
+          <button class="btn secondary" onclick="resetCool()">Reset</button>
+        </div>
+        <div class="result" id="cool_out"></div>
+        <details>
+          <summary>Ver propagación de error usada</summary>
+          <p class="muted">Sea <code>D₁=T₁-T_s</code>, <code>D₂=T₂-T_s</code>, <code>R=D₂/D₁</code>, <code>k=-(1/Δ)\ln R</code> y <code>g=\ln\dfrac{T_n-T_s}{D₁}</code>; entonces <code>τ=g/k</code>.
+            Por diferenciales: <code>dτ=(1/k)dg-(g/k²)dk</code>.
+            Derivadas necesarias:
+          </p>
+          <ul class="muted">
+            <li><code>∂g/∂T_n=1/(T_n-T_s)</code>, <code>∂g/∂T_s=-1/(T_n-T_s)+1/D₁</code>, <code>∂g/∂T₁=-1/D₁</code>, <code>∂g/∂T₂=0</code>.</li>
+            <li><code>∂k/∂T₁=1/(Δ·D₁)</code>, <code>∂k/∂T₂=-1/(Δ·D₂)</code>, <code>∂k/∂T_s=(1/Δ)(1/D₂-1/D₁)</code>, <code>∂k/∂Δ=\ln R/Δ²</code>.</li>
+          </ul>
+          <p class="muted">Finalmente, <code>σ_τ=\sqrt{\sum (∂τ/∂x·σ_x)^2}</code> con <code>x∈{T_s,T₁,T₂,T_n,Δ}</code>.</p>
+        </details>
+      </section>
+    </div>
+
+    <footer>
+      <p>Tip: Usa <strong>Ctrl+S</strong> para guardar este archivo como <code>index.html</code> y súbelo a GitHub Pages. Todo el JS está embebido.</p>
+    </footer>
+  </div>
+
+<script>
+  const fmt = (x, d=2) => Number.isFinite(x) ? x.toFixed(d) : '—';
+  const clampPos = (x) => (x>0?x:NaN);
+
+  // === Carbono 14 ===
+  function computeC14(){
+    const r_pct = parseFloat(document.getElementById('c14_r').value);
+    const sr_pct = parseFloat(document.getElementById('c14_sr').value);
+    const T = parseFloat(document.getElementById('c14_T').value);
+    const sT = parseFloat(document.getElementById('c14_sT').value);
+
+    const r = r_pct/100.0;
+    const sr = sr_pct/100.0;
+    const ln05 = Math.log(0.5);
+
+    if(!(r>0 && r<1)){
+      document.getElementById('c14_out').innerHTML = `<span class="err">r debe estar entre 0 y 100%.</span>`; return;
+    }
+
+    const t = T * Math.log(r) / ln05; // años
+
+    // Derivadas
+    const dt_dr = T/(ln05) * (1/r);
+    const dt_dT = Math.log(r)/ln05;
+    const st = Math.sqrt( (dt_dr*sr)**2 + (dt_dT*sT)**2 );
+
+    const t_nearest = Math.round(t);
+    const out = `
+      <div class='kpi'>
+        <span class='pill'>Edad estimada: <strong>${fmt(t,2)}</strong> años</span>
+        <span class='pill'>±σ: <strong>${fmt(st,2)}</strong> años (68%)</span>
+        <span class='pill'>≈ <strong>${fmt(2*st,2)}</strong> años (95%)</span>
+        <span class='pill'>Redondeado: <strong>${t_nearest}</strong> años</span>
+      </div>
+      <div class='muted' style='margin-top:6px'>k = ln(0.5)/T₁/₂ = ${fmt(Math.log(0.5)/T,6)} 1/año;  r = ${fmt(r,4)} ± ${fmt(sr,4)}.</div>
+    `;
+    document.getElementById('c14_out').innerHTML = out;
+  }
+  function resetC14(){
+    document.getElementById('c14_r').value = 77.45;
+    document.getElementById('c14_sr').value = 0.50;
+    document.getElementById('c14_T').value = 5730;
+    document.getElementById('c14_sT').value = 40;
+    document.getElementById('c14_out').innerHTML = '';
+  }
+
+  // === Ley de Enfriamiento ===
+  function computeCool(){
+    const Ts = parseFloat(document.getElementById('co_Ts').value);
+    const sTs = parseFloat(document.getElementById('co_sTs').value);
+    const T1 = parseFloat(document.getElementById('co_T1').value);
+    const sT1 = parseFloat(document.getElementById('co_sT1').value);
+    const T2 = parseFloat(document.getElementById('co_T2').value);
+    const sT2 = parseFloat(document.getElementById('co_sT2').value);
+    const Tn = parseFloat(document.getElementById('co_Tn').value);
+    const sTn = parseFloat(document.getElementById('co_sTn').value);
+    const D = parseFloat(document.getElementById('co_D').value);
+    const sD = parseFloat(document.getElementById('co_sD').value);
+    const hhmm = document.getElementById('co_hhmm').value || '21:18';
+    const fmtMode = document.getElementById('co_fmt').value;
+
+    const D1 = T1 - Ts;
+    const D2 = T2 - Ts;
+    if(!(D1>0 && D2>0) || !(D>0)){
+      document.getElementById('cool_out').innerHTML = `<span class='err'>Revisa: deben cumplirse T₁>T_s, T₂>T_s y Δ>0.</span>`; return;
+    }
+
+    const k = -(1/D) * Math.log(D2/D1);
+    const g = Math.log( (Tn - Ts) / D1 );
+    const tau = g / k; // horas antes de la 1ª medición
+
+    // Derivadas para σ_tau
+    const dg_dTn = 1/(Tn - Ts);
+    const dg_dTs = -1/(Tn - Ts) + 1/D1;
+    const dg_dT1 = -1/D1;
+    const dg_dT2 = 0;
+
+    const dk_dT1 = 1/(D * D1);
+    const dk_dT2 = -1/(D * D2);
+    const dk_dTs = (1/D) * (1/D2 - 1/D1);
+    const dk_dD  = Math.log(D2/D1) / (D*D);
+
+    const dt_d = (dg, dk) => (1/k)*dg - (g/(k*k))*dk;
+
+    const dTau_dTn = dt_d(dg_dTn, 0);
+    const dTau_dTs = dt_d(dg_dTs, dk_dTs);
+    const dTau_dT1 = dt_d(dg_dT1, dk_dT1);
+    const dTau_dT2 = dt_d(dg_dT2, dk_dT2);
+    const dTau_dD  = dt_d(0,       dk_dD);
+
+    const sTau = Math.sqrt(
+      (dTau_dTn*sTn)**2 + (dTau_dTs*sTs)**2 + (dTau_dT1*sT1)**2 + (dTau_dT2*sT2)**2 + (dTau_dD*sD)**2
+    );
+
+    // Hora absoluta
+    const parts = hhmm.split(':'), H = parseInt(parts[0]||'21',10), M = parseInt(parts[1]||'18',10);
+    const measMinutes = H*60 + M;
+    const deathMinutes = measMinutes - tau*60;
+    const deathMinutes68a = measMinutes - (tau + sTau)*60;
+    const deathMinutes68b = measMinutes - (tau - sTau)*60;
+
+    const wrap = (m)=>{ let t=m; while(t<0) t+=24*60; while(t>=24*60) t-=24*60; return t; };
+    const hm = (m)=>{ const t=wrap(Math.round(m)); const hh = Math.floor(t/60).toString().padStart(2,'0'); const mm=(t%60).toString().padStart(2,'0'); return `${hh}:${mm}`; };
+
+    const deathHM = hm(deathMinutes);
+    const deathHM_lo = hm(deathMinutes68a);
+    const deathHM_hi = hm(deathMinutes68b);
+
+    const outHM = (fmtMode==='hm')
+      ? `<span class='pill'>Hora estimada: <strong>${deathHM}</strong> (68% entre ${deathHM_lo}–${deathHM_hi})</span>`
+      : `<span class='pill'>Tiempo antes de la 1ª medición: <strong>${fmt(tau,3)} ± ${fmt(sTau,3)}</strong> h</span>`;
+
+    const out = `
+      <div class='kpi'>
+        <span class='pill'>k = <strong>${fmt(k,6)}</strong> 1/h</span>
+        <span class='pill'>τ = <strong>${fmt(tau,3)}</strong> h ± <strong>${fmt(sTau,3)}</strong> (68%)</span>
+        ${outHM}
+      </div>
+      <div class='muted' style='margin-top:6px'>D₁=${fmt(D1,2)}, D₂=${fmt(D2,2)}, Δ=${fmt(D,2)} h,  g=${fmt(g,4)}.</div>
+    `;
+    document.getElementById('cool_out').innerHTML = out;
+  }
+  function resetCool(){
+    document.getElementById('co_Ts').value = 69;
+    document.getElementById('co_sTs').value = 1.0;
+    document.getElementById('co_T1').value = 79.5;
+    document.getElementById('co_sT1').value = 0.5;
+    document.getElementById('co_T2').value = 78.0;
+    document.getElementById('co_sT2').value = 0.5;
+    document.getElementById('co_Tn').value = 98.6;
+    document.getElementById('co_sTn').value = 0.5;
+    document.getElementById('co_D').value = 1.0;
+    document.getElementById('co_sD').value = 0.0;
+    document.getElementById('co_hhmm').value = '21:18';
+    document.getElementById('cool_out').innerHTML = '';
+  }
+</script>
+</body>
+</html>
